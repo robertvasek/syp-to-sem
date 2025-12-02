@@ -1,0 +1,4 @@
+pandas
+qrcode
+fpdf2
+dotenv
