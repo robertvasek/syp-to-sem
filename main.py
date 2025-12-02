@@ -1,12 +1,11 @@
 import os
-import csv
 from datetime import datetime, timedelta
 import pandas as pd
 import qrcode
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos  # ADDED: Required for new syntax
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
 # --- DESIGN CONFIGURATION (Modern Palette) ---
@@ -46,8 +45,10 @@ class ModernInvoicePDF(FPDF):
         self.ln(5)
 
         repo_url = "https://github.com/robertvasek/syp-to-sem"
-        self.cell(0, 5, f'Generováno automaticky | {repo_url}', 0, 1, 'C', link=repo_url)
-        self.cell(0, 5, f'Strana {self.page_no()}', 0, 0, 'C')
+        # Changed ln=1 to new_x/new_y
+        self.cell(0, 5, f'Generováno automaticky | {repo_url}', 0, align='C', new_x=XPos.LMARGIN, new_y=YPos.NEXT, link=repo_url)
+        # Changed ln=0 to new_x/new_y
+        self.cell(0, 5, f'Strana {self.page_no()}', 0, align='C', new_x=XPos.RIGHT, new_y=YPos.TOP)
 
     def draw_label_value(self, label, value, w=45, new_line=False):
         """Helper to draw a small gray label and a larger value below it."""
@@ -56,11 +57,13 @@ class ModernInvoicePDF(FPDF):
 
         self.set_font(self.font_family, '', 7)
         self.set_text_color(*COLOR_TEXT_MUTED)
-        self.cell(w, 4, label.upper(), 0, 2, 'L')
+        # Changed ln=2 to new_x=XPos.LEFT, new_y=YPos.NEXT
+        self.cell(w, 4, label.upper(), 0, align='L', new_x=XPos.LEFT, new_y=YPos.NEXT)
 
         self.set_font(self.font_family, '', 10)
         self.set_text_color(*COLOR_PRIMARY)
-        self.cell(w, 6, str(value), 0, 0, 'L')
+        # Changed ln=0 to new_x=XPos.RIGHT, new_y=YPos.TOP
+        self.cell(w, 6, str(value), 0, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP)
 
         if new_line:
             self.ln(12)  # Move down for next row
@@ -85,6 +88,7 @@ def create_invoice():
         my_city = os.getenv("MY_CITY")
         my_ico = os.getenv("MY_ICO")
         my_iban = os.getenv("MY_IBAN")
+        my_acc_no = os.getenv("MY_ACC_NUMBER_DISPLAY", my_iban)
         my_swift = os.getenv("MY_SWIFT", "")
         my_bank = os.getenv("MY_BANK_NAME")
         my_reg = os.getenv("MY_REGISTRATION")
@@ -95,7 +99,7 @@ def create_invoice():
         client_ico = os.getenv("CLIENT_ICO")
         client_dic = os.getenv("CLIENT_DIC")
 
-        invoice_prefix = os.getenv("INVOICE_PREFIX", "2024")
+        invoice_prefix = os.getenv("INVOICE_PREFIX", datetime.now().year)
         due_days = int(os.getenv("DUE_DAYS", "14"))
 
         df = pd.read_csv('items.csv')
@@ -132,11 +136,13 @@ def create_invoice():
 
     # Title Left
     pdf.set_font(pdf.font_family, '', 26)
-    pdf.cell(100, 10, "FAKTURA", 0, 0, 'L')
+    # Changed ln=0
+    pdf.cell(100, 10, "FAKTURA", 0, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP)
 
     # Invoice Number Right
     pdf.set_font(pdf.font_family, '', 14)
-    pdf.cell(90, 10, f"Č. {invoice_number}", 0, 1, 'R')
+    # Changed ln=1
+    pdf.cell(90, 10, f"Č. {invoice_number}", 0, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.ln(25)  # Spacing after banner
 
@@ -146,19 +152,24 @@ def create_invoice():
     # Column 1: DODAVATEL (Left)
     pdf.set_font(pdf.font_family, '', 8)
     pdf.set_text_color(*COLOR_TEXT_MUTED)
-    pdf.cell(90, 5, "DODAVATEL", 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, "DODAVATEL", 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font(pdf.font_family, '', 11)
     pdf.set_text_color(*COLOR_PRIMARY)
-    pdf.cell(90, 6, my_name, 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 6, my_name, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_font(pdf.font_family, '', 10)
     pdf.set_text_color(60, 60, 60)
-    pdf.cell(90, 5, my_street, 0, 1)
-    pdf.cell(90, 5, my_city, 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, my_street, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    # Changed ln=1
+    pdf.cell(90, 5, my_city, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.ln(3)
     pdf.set_font(pdf.font_family, '', 9)
-    pdf.cell(90, 5, f"IČ: {my_ico}", 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, f"IČ: {my_ico}", 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     y_left_bottom = pdf.get_y()
 
@@ -166,30 +177,36 @@ def create_invoice():
     pdf.set_xy(110, y_addresses)
     pdf.set_font(pdf.font_family, '', 8)
     pdf.set_text_color(*COLOR_TEXT_MUTED)
-    pdf.cell(90, 5, "ODBĚRATEL", 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, "ODBĚRATEL", 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Fix: Force X back to 110 after each new line
     pdf.set_x(110)
     pdf.set_font(pdf.font_family, '', 11)
     pdf.set_text_color(0)
-    pdf.cell(90, 6, client_name, 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 6, client_name, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_x(110)
     pdf.set_font(pdf.font_family, '', 10)
     pdf.set_text_color(60, 60, 60)
-    pdf.cell(90, 5, client_street, 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, client_street, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_x(110)
-    pdf.cell(90, 5, client_city, 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, client_city, 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.ln(3)
 
     pdf.set_x(110)
     pdf.set_font(pdf.font_family, '', 9)
-    pdf.cell(90, 5, f"IČ: {client_ico}", 0, 1)
+    # Changed ln=1
+    pdf.cell(90, 5, f"IČ: {client_ico}", 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     if client_dic:
         pdf.set_x(110)
-        pdf.cell(90, 5, f"DIČ: {client_dic}", 0, 1)
+        # Changed ln=1
+        pdf.cell(90, 5, f"DIČ: {client_dic}", 0, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Re-align below longest column
     pdf.set_y(max(y_left_bottom, pdf.get_y()) + 15)
@@ -207,7 +224,7 @@ def create_invoice():
     pdf.draw_label_value("DATUM VYSTAVENÍ", date_issue, w=40)
     pdf.draw_label_value("DATUM SPLATNOSTI", date_due, w=40)
     pdf.draw_label_value("BANKA", my_bank, w=50)
-    pdf.draw_label_value("ČÍSLO ÚČTU", my_iban, w=60)  # IBAN is long
+    pdf.draw_label_value("ČÍSLO ÚČTU", my_acc_no, w=60)  # IBAN is long
 
     pdf.ln(25)
 
@@ -215,10 +232,14 @@ def create_invoice():
     # Header
     pdf.set_font(pdf.font_family, '', 8)
     pdf.set_text_color(*COLOR_TEXT_MUTED)
-    pdf.cell(90, 8, "POPIS POLOŽKY", "B", 0, 'L')
-    pdf.cell(30, 8, "MNOŽSTVÍ", "B", 0, 'R')
-    pdf.cell(35, 8, "CENA/J.", "B", 0, 'R')
-    pdf.cell(35, 8, "CELKEM", "B", 1, 'R')
+    # Changed ln=0
+    pdf.cell(90, 8, "POPIS POLOŽKY", "B", align='L', new_x=XPos.RIGHT, new_y=YPos.TOP)
+    # Changed ln=0
+    pdf.cell(30, 8, "MNOŽSTVÍ", "B", align='R', new_x=XPos.RIGHT, new_y=YPos.TOP)
+    # Changed ln=0
+    pdf.cell(35, 8, "CENA/J.", "B", align='R', new_x=XPos.RIGHT, new_y=YPos.TOP)
+    # Changed ln=1
+    pdf.cell(35, 8, "CELKEM", "B", align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Rows
     pdf.set_font(pdf.font_family, '', 10)
@@ -233,10 +254,14 @@ def create_invoice():
         price = f"{row['price_per_unit']:.0f} Kč"
         total = f"{row['total']:.0f} Kč"
 
-        pdf.cell(90, 8, desc, 0, 0, 'L')
-        pdf.cell(30, 8, qty, 0, 0, 'R')
-        pdf.cell(35, 8, price, 0, 0, 'R')
-        pdf.cell(35, 8, total, 0, 1, 'R')
+        # Changed ln=0
+        pdf.cell(90, 8, desc, 0, align='L', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        # Changed ln=0
+        pdf.cell(30, 8, qty, 0, align='R', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        # Changed ln=0
+        pdf.cell(35, 8, price, 0, align='R', new_x=XPos.RIGHT, new_y=YPos.TOP)
+        # Changed ln=1
+        pdf.cell(35, 8, total, 0, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
         # Divider line
         y_line = pdf.get_y()
@@ -265,19 +290,22 @@ def create_invoice():
     pdf.set_xy(120, y_footer)
     pdf.set_font(pdf.font_family, '', 10)
     pdf.set_text_color(*COLOR_TEXT_MUTED)
-    pdf.cell(80, 8, "CELKEM K ÚHRADĚ", 0, 1, 'R')
+    # Changed ln=1
+    pdf.cell(80, 8, "CELKEM K ÚHRADĚ", 0, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     pdf.set_x(120)
     pdf.set_font(pdf.font_family, '', 24)
     pdf.set_text_color(*COLOR_PRIMARY)
     total_str = f"{grand_total:,.2f} Kč".replace(",", " ").replace(".", ",")
-    pdf.cell(80, 12, total_str, 0, 1, 'R')
+    # Changed ln=1
+    pdf.cell(80, 12, total_str, 0, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Variable symbol below total
     pdf.set_x(120)
     pdf.set_font(pdf.font_family, '', 9)
     pdf.set_text_color(*COLOR_TEXT_MUTED)
-    pdf.cell(80, 6, f"Var. symbol: {invoice_number}", 0, 1, 'R')
+    # Changed ln=1
+    pdf.cell(80, 6, f"Var. symbol: {invoice_number}", 0, align='R', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     # Cleanup
     try:
